@@ -20,14 +20,16 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+  userOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard, adminOnly: true },
-  { href: '/requests/new', label: 'Tạo yêu cầu', icon: PlusCircle },
+  { href: '/requests/new', label: 'Tạo yêu cầu', icon: PlusCircle, userOnly: true },
   { href: '/requests', label: 'Danh sách yêu cầu', icon: ClipboardList },
   { href: '/admin/departments', label: 'Phòng ban', icon: Building2, adminOnly: true },
   { href: '/admin/items', label: 'Văn phòng phẩm', icon: Package, adminOnly: true },
+  { href: '/admin/department-items', label: 'Phân bổ mặt hàng', icon: ClipboardList, adminOnly: true },
   { href: '/admin/users', label: 'Người dùng', icon: Users, adminOnly: true },
 ];
 
@@ -36,7 +38,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
-  const visibleItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  const visibleItems = navItems.filter(item => 
+    isAdmin ? !item.userOnly : !item.adminOnly
+  );
 
   return (
     <aside className={cn(

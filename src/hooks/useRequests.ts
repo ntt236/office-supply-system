@@ -21,7 +21,7 @@ export function useRequests(options: UseRequestsOptions = {}) {
       .from('requests')
       .select(`
         *,
-        user:users(id, email, role, department_id),
+        user:users!requests_user_id_fkey(id, email, role, department_id),
         department:departments(id, name),
         request_items(
           *,
@@ -55,7 +55,7 @@ export function useRequests(options: UseRequestsOptions = {}) {
     userId: string,
     departmentId: string,
     month: string,
-    items: Array<{ item_id: string; stock: number; requested: number; purchase: number }>
+    items: Array<{ item_id: string; stock: number; requested: number; purchase: number; note: string | null }>
   ) => {
     // Step 1: Insert request
     const { data: request, error: reqError } = await supabase
@@ -80,6 +80,7 @@ export function useRequests(options: UseRequestsOptions = {}) {
         stock: i.stock,
         requested: i.requested,
         purchase: i.purchase,
+        note: i.note,
       }));
 
     if (requestItems.length > 0) {
@@ -94,11 +95,63 @@ export function useRequests(options: UseRequestsOptions = {}) {
     return request;
   };
 
+  const updateRequestStatus = async (id: string, status: 'approved' | 'rejected', rejectReason?: string) => {
+    const { error } = await supabase
+      .from('requests')
+      .update({ status, reject_reason: rejectReason || null })
+      .eq('id', id);
+    if (error) throw error;
+    await fetchRequests();
+  };
+
+  const editRequest = async (
+    requestId: string,
+    items: Array<{ item_id: string; stock: number; requested: number; purchase: number; note: string | null }>
+  ) => {
+    // Step 1: Delete old request_items
+    const { error: deleteError } = await supabase
+      .from('request_items')
+      .delete()
+      .eq('request_id', requestId);
+
+    if (deleteError) throw deleteError;
+
+    // Step 2: Insert new request_items
+    const requestItems = items
+      .filter(i => i.stock > 0 || i.requested > 0)
+      .map(i => ({
+        request_id: requestId,
+        item_id: i.item_id,
+        stock: i.stock,
+        requested: i.requested,
+        purchase: i.purchase,
+        note: i.note,
+      }));
+
+    if (requestItems.length > 0) {
+      const { error: itemsError } = await supabase
+        .from('request_items')
+        .insert(requestItems);
+
+      if (itemsError) throw itemsError;
+    }
+
+    // Step 3: Update request status back to pending
+    const { error: updateError } = await supabase
+      .from('requests')
+      .update({ status: 'pending', reject_reason: null })
+      .eq('id', requestId);
+
+    if (updateError) throw updateError;
+
+    await fetchRequests();
+  };
+
   const deleteRequest = async (id: string) => {
     const { error } = await supabase.from('requests').delete().eq('id', id);
     if (error) throw error;
     await fetchRequests();
   };
 
-  return { requests, loading, error, refetch: fetchRequests, createRequest, deleteRequest };
+  return { requests, loading, error, refetch: fetchRequests, createRequest, updateRequestStatus, editRequest, deleteRequest };
 }

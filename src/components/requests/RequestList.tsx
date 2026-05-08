@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
 import { RequestDetailDialog } from '@/components/requests/RequestDetailDialog';
+import { EditRequestDialog } from '@/components/requests/EditRequestDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -16,17 +17,18 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, Trash2, Download, Search, Loader2 } from 'lucide-react';
+import { Eye, Trash2, Download, Search, Loader2, Edit2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { Request } from '@/types';
 import { toast } from 'sonner';
 
 export function RequestList() {
   const { user } = useAuth();
-  const { requests, loading, deleteRequest } = useRequests();
+  const { requests, loading, deleteRequest, updateRequestStatus, editRequest } = useRequests();
   const [search, setSearch] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const isAdmin = user?.role === 'admin';
@@ -55,6 +57,11 @@ export function RequestList() {
   const handleView = (request: Request) => {
     setSelectedRequest(request);
     setIsDialogOpen(true);
+  };
+
+  const handleEdit = (request: Request) => {
+    setSelectedRequest(request);
+    setIsEditDialogOpen(true);
   };
 
   const exportExcel = () => {
@@ -114,6 +121,7 @@ export function RequestList() {
                     {isAdmin && <TableHead className="text-slate-500">Người yêu cầu</TableHead>}
                     <TableHead className="text-slate-500">Phòng ban</TableHead>
                     <TableHead className="text-slate-500 text-center">Số lượng mặt hàng</TableHead>
+                    <TableHead className="text-slate-500">Trạng thái</TableHead>
                     <TableHead className="text-slate-500">Ngày tạo</TableHead>
                     <TableHead className="text-slate-500 text-right pr-4">Thao tác</TableHead>
                   </TableRow>
@@ -121,7 +129,7 @@ export function RequestList() {
                 <TableBody>
                   {filteredRequests.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={isAdmin ? 7 : 6} className="text-center text-slate-500 py-8">
+                      <TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-slate-500 py-8">
                         Không tìm thấy yêu cầu nào
                       </TableCell>
                     </TableRow>
@@ -139,6 +147,11 @@ export function RequestList() {
                         <TableCell className="text-center text-slate-700">
                           {r.request_items?.length || 0}
                         </TableCell>
+                        <TableCell>
+                          {r.status === 'approved' && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none">Đã duyệt</Badge>}
+                          {r.status === 'rejected' && <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-none">Từ chối</Badge>}
+                          {(!r.status || r.status === 'pending') && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-none">Chờ duyệt</Badge>}
+                        </TableCell>
                         <TableCell className="text-slate-500 text-sm">
                           {new Date(r.created_at).toLocaleString('vi-VN')}
                         </TableCell>
@@ -153,6 +166,17 @@ export function RequestList() {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
+                            {!isAdmin && r.status === 'rejected' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(r)}
+                                className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                title="Sửa yêu cầu"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            )}
                             {isAdmin && (
                               <Button
                                 variant="ghost"
@@ -185,6 +209,15 @@ export function RequestList() {
         request={selectedRequest}
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
+        isAdmin={isAdmin}
+        onStatusUpdate={updateRequestStatus}
+      />
+      
+      <EditRequestDialog
+        request={selectedRequest}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onEditRequest={editRequest}
       />
     </div>
   );
