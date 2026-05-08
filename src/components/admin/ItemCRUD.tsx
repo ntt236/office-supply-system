@@ -18,11 +18,15 @@ import { Loader2, Plus, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Item } from '@/types';
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 export function ItemCRUD() {
   const { items, loading, createItem, updateItem, deleteItem } = useItems();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [formData, setFormData] = useState({ name: '', code: '', unit: '', default_limit: '' });
+  const [formData, setFormData] = useState<{ name: string; code: string; unit: string; default_limit: string; category: 'office_supply' | 'janitorial' }>({ 
+    name: '', code: '', unit: '', default_limit: '', category: 'office_supply' 
+  });
   const [saving, setSaving] = useState(false);
 
   const handleOpenDialog = (item?: Item) => {
@@ -33,10 +37,11 @@ export function ItemCRUD() {
         code: item.code,
         unit: item.unit || '',
         default_limit: item.default_limit?.toString() || '',
+        category: item.category || 'office_supply',
       });
     } else {
       setEditingItem(null);
-      setFormData({ name: '', code: '', unit: '', default_limit: '' });
+      setFormData({ name: '', code: '', unit: '', default_limit: '', category: 'office_supply' });
     }
     setIsDialogOpen(true);
   };
@@ -53,6 +58,7 @@ export function ItemCRUD() {
       code: formData.code,
       unit: formData.unit || null,
       default_limit: formData.default_limit ? parseInt(formData.default_limit) : null,
+      category: formData.category,
     };
 
     try {
@@ -109,6 +115,7 @@ export function ItemCRUD() {
                   <TableHead className="text-slate-500 pl-4 w-12">STT</TableHead>
                   <TableHead className="text-slate-500">Mã</TableHead>
                   <TableHead className="text-slate-500">Tên mặt hàng</TableHead>
+                  <TableHead className="text-slate-500">Danh mục</TableHead>
                   <TableHead className="text-slate-500">ĐVT</TableHead>
                   <TableHead className="text-slate-500 text-right">Định mức</TableHead>
                   <TableHead className="text-slate-500 text-right pr-4">Thao tác</TableHead>
@@ -120,6 +127,9 @@ export function ItemCRUD() {
                     <TableCell className="text-slate-500 pl-4">{idx + 1}</TableCell>
                     <TableCell className="text-slate-500 font-mono text-sm">{item.code}</TableCell>
                     <TableCell className="text-slate-900 font-medium">{item.name}</TableCell>
+                    <TableCell className="text-slate-600 text-sm">
+                      {item.category === 'janitorial' ? 'Vệ sinh' : 'Văn phòng phẩm'}
+                    </TableCell>
                     <TableCell className="text-slate-500">{item.unit || '—'}</TableCell>
                     <TableCell className="text-slate-700 text-right">{item.default_limit ?? '—'}</TableCell>
                     <TableCell className="text-right pr-4">
@@ -134,7 +144,7 @@ export function ItemCRUD() {
                 ))}
                 {items.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-slate-500 py-8">Chưa có mặt hàng nào</TableCell>
+                    <TableCell colSpan={7} className="text-center text-slate-500 py-8">Chưa có mặt hàng nào</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -166,6 +176,18 @@ export function ItemCRUD() {
                 placeholder="Nhập tên..."
                 className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
               />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm text-slate-600">Danh mục</label>
+              <Select value={formData.category} onValueChange={(v: 'office_supply' | 'janitorial') => setFormData({ ...formData, category: v })}>
+                <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                  <SelectValue placeholder="Chọn danh mục" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="office_supply">Văn phòng phẩm</SelectItem>
+                  <SelectItem value="janitorial">Dụng cụ vệ sinh</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">

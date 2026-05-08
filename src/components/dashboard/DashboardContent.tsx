@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { useRequests } from '@/hooks/useRequests';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useDepartments } from '@/hooks/useDepartments';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { RequestsChart } from '@/components/dashboard/RequestsChart';
+import { TopItemsChart } from '@/components/dashboard/TopItemsChart';
+import { DepartmentComparisonChart } from '@/components/dashboard/DepartmentComparisonChart';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,10 +43,9 @@ import type { Department } from '@/types';
 export function DashboardContent() {
   const [monthFilter, setMonthFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [search, setSearch] = useState('');
 
-  const { metrics, chartData, loading: metricsLoading } = useDashboard({
+  const { metrics, chartData, summaryData, loading: metricsLoading } = useDashboard({
     month: monthFilter || undefined,
     departmentId: deptFilter === 'all' ? undefined : (deptFilter || undefined),
   });
@@ -53,14 +55,7 @@ export function DashboardContent() {
     departmentId: deptFilter === 'all' ? undefined : (deptFilter || undefined),
   });
 
-  const supabase = createClient();
-
-  useEffect(() => {
-    supabase.from('departments').select('*').order('name').then(({ data }) => {
-      setDepartments(data || []);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { departments } = useDepartments();
 
   const filteredRequests = requests.filter(r =>
     !search ||
@@ -118,6 +113,11 @@ export function DashboardContent() {
 
       {/* Chart */}
       <RequestsChart data={chartData} loading={metricsLoading} />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <DepartmentComparisonChart data={summaryData} loading={metricsLoading} />
+        <TopItemsChart data={summaryData} loading={metricsLoading} />
+      </div>
 
       {/* Table */}
       <Card className="border-slate-200 bg-white shadow-sm">

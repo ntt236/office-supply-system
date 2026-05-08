@@ -22,6 +22,8 @@ export function useDashboard(filters?: { month?: string; departmentId?: string }
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
+  const [summaryData, setSummaryData] = useState<{ department_name: string; item_name: string; total_requested: number; category: string }[]>([]);
+
   const fetchMetrics = useCallback(async () => {
     setLoading(true);
 
@@ -98,6 +100,11 @@ export function useDashboard(filters?: { month?: string; departmentId?: string }
     });
 
     setChartData(Object.values(grouped));
+
+    // Fetch department item summary
+    const { data: summary } = await supabase.from('department_item_summary').select('*');
+    setSummaryData(summary || []);
+
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters?.month, filters?.departmentId]);
@@ -106,5 +113,5 @@ export function useDashboard(filters?: { month?: string; departmentId?: string }
     fetchMetrics();
   }, [fetchMetrics]);
 
-  return { metrics, chartData, loading };
+  return { metrics, chartData, summaryData, loading };
 }

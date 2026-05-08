@@ -1,4 +1,6 @@
 export type UserRole = 'admin' | 'user';
+export type RequestStatus = 'pending' | 'approved' | 'rejected';
+export type ItemCategory = 'office_supply' | 'janitorial';
 
 export interface Department {
   id: string;
@@ -21,6 +23,7 @@ export interface Item {
   code: string;
   unit: string | null;
   default_limit: number | null;
+  category: ItemCategory;
   created_at: string;
 }
 
@@ -29,6 +32,10 @@ export interface Request {
   user_id: string;
   department_id: string;
   month: string;
+  status: RequestStatus;
+  approved_by: string | null;
+  approved_at: string | null;
+  reject_reason: string | null;
   created_at: string;
   user?: User;
   department?: Department;
@@ -42,6 +49,15 @@ export interface RequestItem {
   stock: number;
   requested: number;
   purchase: number;
+  note: string | null;
+  created_at: string;
+  item?: Item;
+}
+
+export interface DepartmentItem {
+  id: string;
+  department_id: string;
+  item_id: string;
   created_at: string;
   item?: Item;
 }
@@ -58,5 +74,6 @@ export interface RequestItemRow {
   stock: number;
   requested: number;
   purchase: number;
+  note: string;
   status: 'OK' | 'EXCEED';
 }
