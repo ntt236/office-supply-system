@@ -162,7 +162,7 @@ export function RequestDetailDialog({ request, open, onOpenChange, isAdmin, onSt
                         {isExceeded ? 'Vượt' : 'OK'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-slate-600 text-sm max-w-[200px] truncate" title={item.note || ''}>
+                    <TableCell className="text-slate-600 text-sm whitespace-pre-wrap min-w-[200px]" title={item.note || ''}>
                       {item.note || '—'}
                     </TableCell>
                   </TableRow>

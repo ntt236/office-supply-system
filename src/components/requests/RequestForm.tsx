@@ -27,18 +27,12 @@ export function RequestForm() {
   const { mappedItems, loading: itemsLoading } = useDepartmentItems(user?.department_id || undefined);
   const { createRequest } = useRequests();
 
-  // Always use next month — locked per business rule
-  const nextMonth = (() => {
+  // Allow user to freely select the request month (default to next month)
+  const [requestMonth, setRequestMonth] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
     return d.toISOString().slice(0, 7);
-  })();
-
-  // Format for display: e.g. "Tháng 6/2026"
-  const nextMonthLabel = (() => {
-    const [year, month] = nextMonth.split('-');
-    return `Tháng ${parseInt(month)}/${year}`;
-  })();
+  });
 
   const [rows, setRows] = useState<RequestItemRow[]>([]);
   const [saving, setSaving] = useState(false);
@@ -99,7 +93,7 @@ export function RequestForm() {
       await createRequest(
         user.id,
         user.department_id,
-        nextMonth,
+        requestMonth,
         changedRows.map(r => ({
           item_id: r.item.id,
           stock: r.stock,
@@ -228,11 +222,16 @@ export function RequestForm() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div>
               <label className="text-sm text-slate-600 mb-1.5 block">Tháng yêu cầu</label>
-              <div className="flex items-center gap-2 h-10 px-4 rounded-md border border-slate-200 bg-slate-50">
-                <span className="text-slate-900 font-semibold">{nextMonthLabel}</span>
-                <Badge className="bg-blue-100 text-blue-700 border-none text-xs ml-1">Tự động</Badge>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="month"
+                  value={requestMonth}
+                  onChange={(e) => setRequestMonth(e.target.value)}
+                  className="h-10 w-48 bg-white font-medium"
+                  required
+                />
               </div>
-              <p className="text-xs text-slate-400 mt-1">Chỉ được tạo yêu cầu cho tháng tiếp theo</p>
+              <p className="text-xs text-slate-400 mt-1">Chọn tháng bạn muốn tạo yêu cầu</p>
             </div>
             <div className="flex gap-3 sm:mt-2">
               {exceededCount > 0 && (

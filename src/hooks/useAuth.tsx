@@ -36,31 +36,100 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   useEffect(() => {
-    // onAuthStateChange is the single source of truth.
-    // It fires immediately on mount with INITIAL_SESSION event (replaces getSession).
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: string, session: { user?: { id: string } } | null) => {
+    let mounted = true;
+    let fallbackTimeout: NodeJS.Timeout;
+
+    const initSession = async () => {
+      try {
+        // Fallback: If auth takes too long, force loading to stop
+        fallbackTimeout = setTimeout(() => {
+          if (mounted && loading) {
+            console.warn('Auth initialization timed out, forcing load to stop.');
+            setLoading(false);
+          }
+        }, 8000);
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('Session error:', error);
+          if (mounted) {
+            setUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
         if (session?.user) {
           const profile = await fetchProfile(session.user.id);
-          setUser(profile);
-
-          // Redirect only if this is NOT triggered by a manual signIn call
-          if (!signingIn.current) {
-            if (profile?.role === 'admin') {
-              router.push('/dashboard');
-            } else if (profile) {
-              router.push('/requests/new');
-            }
+          if (mounted) {
+            setUser(profile);
+            setLoading(false);
           }
         } else {
-          setUser(null);
+          if (mounted) {
+            setUser(null);
+            setLoading(false);
+          }
         }
-        setLoading(false);
+      } catch (err) {
+        console.error('Unexpected auth error:', err);
+        if (mounted) {
+          setUser(null);
+          setLoading(false);
+        }
+      } finally {
+        clearTimeout(fallbackTimeout);
+      }
+    };
+
+    // Initialize session explicitly
+    initSession();
+
+    // Listen for future auth changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event: string, session: { user?: { id: string } } | null) => {
+        // Ignore INITIAL_SESSION as we handle it manually above to prevent race conditions
+        if (event === 'INITIAL_SESSION') return;
+
+        if (session?.user) {
+          // Push to macrotask queue to completely avoid Auth Lock Deadlock
+          setTimeout(() => {
+            fetchProfile(session.user!.id).then((profile) => {
+              if (mounted) {
+                setUser(profile);
+
+                // Redirect only if this is NOT triggered by a manual signIn call
+                // and they are currently on the login page or root
+                if (!signingIn.current && typeof window !== 'undefined') {
+                  const path = window.location.pathname;
+                  if (path === '/login' || path === '/') {
+                    if (profile?.role === 'admin') {
+                      router.push('/dashboard');
+                    } else if (profile) {
+                      router.push('/requests/new');
+                    }
+                  }
+                }
+                setLoading(false);
+              }
+            });
+          }, 0);
+        } else {
+          if (mounted) {
+            setUser(null);
+            setLoading(false);
+          }
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      mounted = false;
+      clearTimeout(fallbackTimeout);
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signIn = async (email: string, password: string) => {

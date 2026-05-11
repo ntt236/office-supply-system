@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Edit2 } from 'lucide-react';
+import { Loader2, Edit2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import type { User, Department } from '@/types';
 
@@ -35,6 +35,12 @@ export function UserManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({ role: 'user', department_id: 'none' });
   const [saving, setSaving] = useState(false);
+
+  // Reset password states
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resettingUser, setResettingUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   const supabase = createClient();
 
@@ -88,6 +94,39 @@ export function UserManagement() {
     }
   };
 
+  const handleOpenResetDialog = (user: User) => {
+    setResettingUser(user);
+    setNewPassword('');
+    setResetDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resettingUser || !newPassword) return;
+    if (newPassword.length < 6) {
+      toast.error('Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+
+    setResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: resettingUser.id, newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi không xác định');
+
+      toast.success('Đã cấp lại mật khẩu mới thành công!');
+      setResetDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi reset mật khẩu');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div className="space-y-4 w-full">
       <Card className="border-slate-200 bg-white shadow-sm">
@@ -121,7 +160,10 @@ export function UserManagement() {
                     </TableCell>
                     <TableCell className="text-slate-700">{u.department?.name || <span className="text-slate-400 italic">Chưa phân</span>}</TableCell>
                     <TableCell className="text-slate-500 text-sm">{new Date(u.created_at).toLocaleDateString('vi-VN')}</TableCell>
-                    <TableCell className="text-right pr-4">
+                    <TableCell className="text-right pr-4 space-x-2 whitespace-nowrap">
+                      <Button variant="ghost" size="sm" onClick={() => handleOpenResetDialog(u)} className="text-orange-600 hover:text-orange-700 hover:bg-orange-50" title="Cấp lại mật khẩu">
+                        <KeyRound className="w-4 h-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(u)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                         <Edit2 className="w-4 h-4 mr-2" />
                         Phân quyền
@@ -180,6 +222,37 @@ export function UserManagement() {
             </Button>
             <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent className="bg-white border-slate-200 text-slate-900">
+          <DialogHeader>
+            <DialogTitle className="text-slate-900">Cấp lại mật khẩu</DialogTitle>
+          </DialogHeader>
+          {resettingUser && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label className="text-sm text-slate-600">Mật khẩu mới cho <span className="font-semibold">{resettingUser.email}</span></label>
+                <Input
+                  type="text"
+                  placeholder="Nhập mật khẩu mới..."
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="bg-white border-slate-200 text-slate-900"
+                />
+                <p className="text-xs text-slate-500">Mật khẩu phải có ít nhất 6 ký tự. Hãy copy mật khẩu này và gửi cho nhân viên đăng nhập.</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setResetDialogOpen(false)} className="text-slate-500 hover:text-slate-900">
+              Hủy
+            </Button>
+            <Button onClick={handleResetPassword} disabled={resetting || !newPassword} className="bg-orange-600 hover:bg-orange-700 text-white">
+              {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu mật khẩu mới'}
             </Button>
           </DialogFooter>
         </DialogContent>
