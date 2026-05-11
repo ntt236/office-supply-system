@@ -117,7 +117,7 @@ export function RequestDetailDialog({ request, open, onOpenChange, isAdmin, onSt
                 <TableHead className="text-slate-500 text-right">Định mức</TableHead>
                 <TableHead className="text-slate-500 text-right">Tồn kho</TableHead>
                 <TableHead className="text-slate-500 text-right">Yêu cầu</TableHead>
-                <TableHead className="text-slate-500 text-right">Mua</TableHead>
+                <TableHead className="text-slate-500 text-right">Cần mua</TableHead>
                 <TableHead className="text-slate-500 text-center">Trạng thái</TableHead>
                 <TableHead className="text-slate-500 max-w-[200px]">Ghi chú</TableHead>
               </TableRow>
