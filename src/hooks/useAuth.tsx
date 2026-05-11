@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@/types';
@@ -19,84 +19,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
+  // Prevent double-redirect when signIn() and onAuthStateChange both fire
+  const signingIn = useRef(false);
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string): Promise<User | null> => {
     const { data, error } = await supabase
       .from('users')
       .select('*, department:departments(*)')
       .eq('id', userId)
       .single();
     if (error) {
-      console.error('Error fetching profile:', error);
+      console.error('fetchProfile error:', error.message);
       return null;
     }
     return data as User;
   }, [supabase]);
 
   useEffect(() => {
-    const getSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+    // onAuthStateChange is the single source of truth.
+    // It fires immediately on mount with INITIAL_SESSION event (replaces getSession).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: string, session: { user?: { id: string } } | null) => {
         if (session?.user) {
           const profile = await fetchProfile(session.user.id);
           setUser(profile);
-        }
-      } catch (err) {
-        console.error('Lỗi khi lấy session:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: string, session: any) => {
-        try {
-          if (session?.user) {
-            const profile = await fetchProfile(session.user.id);
-            setUser(profile);
-          } else {
-            setUser(null);
+          // Redirect only if this is NOT triggered by a manual signIn call
+          if (!signingIn.current) {
+            if (profile?.role === 'admin') {
+              router.push('/dashboard');
+            } else if (profile) {
+              router.push('/requests/new');
+            }
           }
-        } catch (err) {
-          console.error('Lỗi khi auth state change:', err);
-        } finally {
-          setLoading(false);
+        } else {
+          setUser(null);
         }
+        setLoading(false);
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile, supabase.auth]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    signingIn.current = true;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
 
-    if (!data.user?.email_confirmed_at) {
-      await supabase.auth.signOut();
-      throw new Error('Vui lòng xác nhận email trước khi đăng nhập.');
+      if (!data.user?.email_confirmed_at) {
+        await supabase.auth.signOut();
+        throw new Error('Vui lòng xác nhận email trước khi đăng nhập.');
+      }
+
+      const profile = await fetchProfile(data.user.id);
+      if (!profile) throw new Error('Không tìm thấy hồ sơ người dùng.');
+
+      setUser(profile);
+
+      if (profile.role === 'admin') {
+        router.push('/dashboard');
+      } else {
+        router.push('/requests/new');
+      }
+
+      return profile;
+    } finally {
+      // Reset after a short delay so onAuthStateChange won't double-redirect
+      setTimeout(() => { signingIn.current = false; }, 500);
     }
-
-    const profile = await fetchProfile(data.user.id);
-    if (!profile) throw new Error('Không tìm thấy hồ sơ người dùng.');
-
-    setUser(profile);
-
-    if (profile.role === 'admin') {
-      router.push('/dashboard');
-    } else {
-      router.push('/requests/new');
-    }
-
-    return profile;
   };
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
+    setLoading(false);
     router.push('/login');
   };
 
