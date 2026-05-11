@@ -13,6 +13,7 @@ import {
   Users,
   Package2,
   ChevronRight,
+  UserCircle,
 } from 'lucide-react';
 
 interface NavItem {
@@ -31,6 +32,7 @@ const navItems: NavItem[] = [
   { href: '/admin/items', label: 'Văn phòng phẩm', icon: Package, adminOnly: true },
   { href: '/admin/department-items', label: 'Phân bổ mặt hàng', icon: ClipboardList, adminOnly: true },
   { href: '/admin/users', label: 'Người dùng', icon: Users, adminOnly: true },
+  { href: '/profile', label: 'Hồ sơ cá nhân', icon: UserCircle },
 ];
 
 export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {

@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Bell, Menu } from 'lucide-react';
+import { LogOut, Bell, Menu, UserCircle } from 'lucide-react';
+import Link from 'next/link';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +61,12 @@ export function Header({ title, onMenuClick }: HeaderProps) {
           <DropdownMenuContent className="w-48 bg-white border-slate-200 text-slate-900" align="end">
             <DropdownMenuLabel className="text-slate-500 text-xs">Tài khoản</DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-100" />
+            <Link href="/profile">
+              <DropdownMenuItem className="cursor-pointer">
+                <UserCircle className="w-4 h-4 mr-2" />
+                Hồ sơ cá nhân
+              </DropdownMenuItem>
+            </Link>
             <DropdownMenuItem
               onClick={signOut}
               className="text-red-400 focus:text-red-400 focus:bg-red-500/10 cursor-pointer"
