@@ -165,7 +165,7 @@ export function EditRequestDialog({ request, open, onOpenChange, onEditRequest }
               <TableHead className="text-slate-500 text-right">Định mức</TableHead>
               <TableHead className="text-slate-500 text-right">Tồn kho</TableHead>
               <TableHead className="text-slate-500 text-right">Yêu cầu</TableHead>
-              <TableHead className="text-slate-500 text-right">Mua</TableHead>
+              <TableHead className="text-slate-500 text-right">Cần mua</TableHead>
               <TableHead className="text-slate-500 min-w-[150px]">Ghi chú (Bắt buộc nếu vượt)</TableHead>
             </TableRow>
           </TableHeader>
@@ -276,7 +276,7 @@ export function EditRequestDialog({ request, open, onOpenChange, onEditRequest }
                 <div className="p-2 border-b border-slate-200 bg-slate-50">
                   <TabsList className="grid w-[400px] grid-cols-2">
                     <TabsTrigger value="office_supply">Văn phòng phẩm</TabsTrigger>
-                    <TabsTrigger value="janitorial">Dụng cụ vệ sinh</TabsTrigger>
+                    <TabsTrigger value="janitorial">Tạp phẩm</TabsTrigger>
                   </TabsList>
                 </div>
                 <TabsContent value="office_supply" className="m-0 border-none p-0 outline-none">
